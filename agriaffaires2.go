@@ -167,21 +167,14 @@ func scrapePage(url string) ([]Tractor, bool, error) {
 		}
 
 		// Enhanced price information
-		priceElement := s.Find(".js-priceToChange")
-		tractor.Price = strings.TrimSpace(priceElement.Text())
-		tractor.ReferencePrice, _ = priceElement.Attr("data-reference_price")
-		tractor.ReferenceCurrency, _ = priceElement.Attr("data-reference_currency") // Extract reference currency
-		tractor.DisplayedCurrency = strings.TrimSpace(priceElement.Text())
+		priceElement := s.Find(".price")
+		tractor.Price = strings.TrimSpace(priceElement.Find(".js-priceToChange").Text())
+		tractor.ReferencePrice, _ = priceElement.Find(".js-priceToChange").Attr("data-reference_price")
+		tractor.ReferenceCurrency, _ = priceElement.Find(".js-priceToChange").Attr("data-reference_currency")
+		tractor.DisplayedCurrency = strings.TrimSpace(priceElement.Find(".js-currencyToChange").Text())
 
-		// Determine VAT type
-		priceTypeText := strings.ToLower(priceElement.Text())
-		if strings.Contains(priceTypeText, "ex-vat") {
-			tractor.PriceType = "ex-VAT"
-		} else if strings.Contains(priceTypeText, "inc-vat") {
-			tractor.PriceType = "inc-VAT"
-		} else {
-			tractor.PriceType = "unknown"
-		}
+		vatText := strings.TrimSpace(priceElement.Find(".h3-like.u-bold").Text())
+		tractor.PriceType = vatText
 
 		// Extract horsepower, year, and working hours
 		s.Find(".listing-block__description span").Each(func(i int, span *goquery.Selection) {
@@ -196,19 +189,21 @@ func scrapePage(url string) ([]Tractor, bool, error) {
 		})
 
 		// Extract dealer and location
-		dealerElement := s.Find(".item-fluid.item-center")
+		dealerElement := s.Find(".block--contact-desktop .item-fluid.item-center")
 		tractor.Dealer = strings.TrimSpace(dealerElement.Find("a.no-under").Text()) // Extract dealer name
 		tractor.Location = strings.TrimSpace(dealerElement.Find(".u-bold").Text())  // Extract location
+
 
 		// Extract phone numbers
 		phoneNumbers := ""
 		s.Find("#js-dropdown-phone-2 li a").Each(func(i int, phoneSel *goquery.Selection) {
 			phoneNumbers += strings.TrimSpace(phoneSel.Text()) + "; "
 		})
-		tractor.Details["Phone"] = phoneNumbers // Store phone numbers
+		tractor.PhoneNumbers = strings.TrimSpace(phoneNumbers) // Store phone numbers in the Tractor struct
+
 
 		tractors = append(tractors, tractor)
-		fmt.Printf("Found tractor: %s, Price: %s %s (%s)\n", tractor.Title, tractor.Price, tractor.DisplayedCurrency, tractor.PriceType)
+		fmt.Printf("Found tractor: %s, Price: %s %s (%s)\n", tractor.Title, tractor.Price, tractor.DisplayedCurrency, tractor.PriceType, tractor.Dealer)
 	})
 
 	// Check if there's a next page
@@ -335,6 +330,7 @@ func saveToCsv(tractors []Tractor) {
 			tractor.Location, tractor.Dealer, tractor.PhoneNumbers, // Add phone numbers, dealer, and location
 			tractor.ImageURL, details, tractor.DetailURL, tractor.Description,
 		}
+		
 
 		// Append equipment data to the row
 		for k := range equipmentKeys {

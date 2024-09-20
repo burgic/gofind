@@ -138,6 +138,7 @@ func scrapePage(url string) ([]Tractor, bool, error) {
 		return nil, false, fmt.Errorf("error parsing page %s: %v", url, err)
 	}
 
+	
 	var tractors []Tractor
 
 	doc.Find(".listing-block.listing-block--classified").Each(func(i int, s *goquery.Selection) {
@@ -244,8 +245,8 @@ func saveToCsv(tractors []Tractor) {
 		}
 	}
 
-	// Create header
-	header := []string{"Title", "Price", "Location", "Dealer", "Image URL", "Detail URL", "Description"}
+	// Create header with additional fields like ReferencePrice, ReferenceCurrency, DisplayedCurrency
+	header := []string{"Title", "Price", "Reference Price", "Reference Currency", "Displayed Currency", "Price Type", "Location", "Dealer", "Image URL", "Detail URL", "Description"}
 	for k := range detailKeys {
 		header = append(header, k)
 	}
@@ -253,11 +254,15 @@ func saveToCsv(tractors []Tractor) {
 		log.Fatal(err)
 	}
 
-	// Write data
+	// Write data including the new fields
 	for _, tractor := range tractors {
 		row := []string{
 			tractor.Title,
 			tractor.Price,
+			tractor.ReferencePrice,      // New field
+			tractor.ReferenceCurrency,   // New field
+			tractor.DisplayedCurrency,   // New field
+			tractor.PriceType,           // New field (VAT information)
 			tractor.Location,
 			tractor.Dealer,
 			tractor.ImageURL,
